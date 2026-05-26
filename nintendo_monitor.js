@@ -1,4 +1,5 @@
-﻿const https = require("https");
+﻿process.env.TZ = 'Asia/Seoul';
+const https = require("https");
 const http = require("http");
 const os = require("os");
 const nodemailer = require("nodemailer");
@@ -105,7 +106,7 @@ const startTime = new Date();
 
 async function checkAll(forceReport) {
   checkCount++;
-  const now = new Date().toLocaleTimeString("ko-KR");
+  const now = new Date().toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul' });
   console.log("\n[" + now + "] #" + checkCount + " 재고 체크 중...");
   const results = [];
 
@@ -117,7 +118,7 @@ async function checkAll(forceReport) {
       results.push({ item, inStock });
 
       if (inStock && !item.available) {
-        const timeStr = new Date().toLocaleString("ko-KR");
+        const timeStr = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
         await sendTelegram("[재고알림] " + item.name + "\n" + item.url + "\n\n시간: " + timeStr + "\n\n지금 바로 구매하세요!!" + getEnvText());
         await sendEmail(
           "[닌텐도 재고알림] " + item.name + " 재고 생겼어요!",
@@ -139,7 +140,7 @@ async function checkAll(forceReport) {
     const uptime = Math.floor((Date.now() - startTime) / 1000);
     const uptimeStr = uptime < 60 ? uptime + "초" : uptime < 3600 ? Math.floor(uptime/60) + "분" : Math.floor(uptime/3600) + "시간 " + Math.floor((uptime%3600)/60) + "분";
     const lines = results.map(r => (r.inStock === null ? "[!] " : r.inStock ? "[O] " : "[X] ") + r.item.name).join("\n");
-    await sendTelegram("[정기보고]\n" + new Date().toLocaleString("ko-KR") + "\n총 " + checkCount + "회 체크 / 가동 " + uptimeStr + "\n\n" + lines + getEnvText());
+    await sendTelegram("[정기보고]\n" + new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) + "\n총 " + checkCount + "회 체크 / 가동 " + uptimeStr + "\n\n" + lines + getEnvText());
     console.log("  [REPORT] 정기 보고 전송 완료");
   }
 }
@@ -159,10 +160,11 @@ async function main() {
   await sendTelegram("[시작] 닌텐도 스위치2 재고 모니터링!\n1분마다 체크 / 4시간마다 정기 보고\n재고 생기면 즉시 알림!" + getEnvText());
   await sendEmail(
     "[닌텐도 재고봇] 모니터링 시작 - 이메일 테스트",
-    "<div style='font-family:sans-serif;max-width:600px;margin:0 auto;'><h2 style='color:#e60012;'>Nintendo Switch 2 재고 모니터링 시작!</h2><p>이메일 알림이 정상적으로 설정되었습니다.</p><ul><li>Nintendo Switch 2 본체</li><li>Nintendo Switch 2 + 마리오카트 월드 세트</li></ul><p>1분마다 체크 / 재고 생기면 이메일 즉시 발송</p><p style='color:#666;'>시작 시간: " + (new Date().toLocaleString("ko-KR")) + "</p>" + getEnvHtml() + "</div>"
+    "<div style='font-family:sans-serif;max-width:600px;margin:0 auto;'><h2 style='color:#e60012;'>Nintendo Switch 2 재고 모니터링 시작!</h2><p>이메일 알림이 정상적으로 설정되었습니다.</p><ul><li>Nintendo Switch 2 본체</li><li>Nintendo Switch 2 + 마리오카트 월드 세트</li></ul><p>1분마다 체크 / 재고 생기면 이메일 즉시 발송</p><p style='color:#666;'>시작 시간: " + (new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })) + "</p>" + getEnvHtml() + "</div>"
   );
   await checkAll(true);
   setInterval(() => checkAll(false), 60 * 1000);
 }
 
 main();
+
