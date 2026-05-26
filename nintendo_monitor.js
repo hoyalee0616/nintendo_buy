@@ -54,19 +54,38 @@ function getEnvHtml() {
   return "<hr><p style='color:#888;font-size:12px;'>" + ENV.hostname + " / " + ENV.platform + " / Node.js " + ENV.node + "<br>IP: " + ENV.ip + " / " + ENV.isp + " / " + ENV.location + "</p>";
 }
 
+// 스트리밍 조기 차단: 품절 확인 후 즉시 연결 종료 (트래픽 절약)
+const MAX_BYTES = 100000; // 100KB (품절 텍스트는 90KB 지점에 위치)
 function fetchPage(url) {
   return new Promise((resolve, reject) => {
-    const options = { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Accept-Language": "ko-KR,ko;q=0.9" }, timeout: 15000 };
+    const options = {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept-Language": "ko-KR,ko;q=0.9"
+      },
+      timeout: 15000
+    };
     const client = url.startsWith("https") ? https : http;
     const req = client.get(url, options, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return fetchPage(res.headers.location).then(resolve).catch(reject);
       }
       let data = "";
-      res.on("data", chunk => data += chunk);
-      res.on("end", () => resolve(data));
+      let totalBytes = 0;
+      let resolved = false;
+      res.on("data", chunk => {
+        data += chunk;
+        totalBytes += chunk.length;
+        // 품절 발견 즉시 OR 100KB 도달 시 연결 종료
+        if (!resolved && (data.includes("품절") || totalBytes >= MAX_BYTES)) {
+          resolved = true;
+          req.destroy();
+          resolve(data);
+        }
+      });
+      res.on("end", () => { if (!resolved) resolve(data); });
     });
-    req.on("error", reject);
+    req.on("error", (e) => { if (e.code !== "ECONNRESET") reject(e); });
     req.on("timeout", () => { req.destroy(); reject(new Error("timeout")); });
   });
 }
@@ -167,4 +186,5 @@ async function main() {
 }
 
 main();
+
 
